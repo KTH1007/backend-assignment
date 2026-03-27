@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -22,10 +24,11 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final DiscountPolicyResolver discountPolicyResolver;
+    private final Clock clock;
 
     @Transactional
     public PaymentResponse pay(PaymentRequest request) {
-        Order order = orderRepository.findById(request.orderId())
+        Order order = orderRepository.findByIdWithLock(request.orderId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         if (paymentRepository.existsByOrder(order)) {
@@ -35,9 +38,9 @@ public class PaymentService {
         DiscountPolicy policy = discountPolicyResolver.resolve(order.getMember().getGrade());
         int finalAmount = policy.calculate(order.getOriginalPrice());
 
-        Payment payment = Payment.create(order, finalAmount, request.paymentMethod());
+        Payment payment = Payment.create(order, finalAmount, request.paymentMethod(), clock);
         paymentRepository.save(payment);
 
-        return PaymentResponse.from(payment);
+        return PaymentResponse.from(payment, order);
     }
 }

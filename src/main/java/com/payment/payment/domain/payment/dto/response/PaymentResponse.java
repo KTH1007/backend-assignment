@@ -1,5 +1,6 @@
 package com.payment.payment.domain.payment.dto.response;
 
+import com.payment.payment.domain.order.model.Order;
 import com.payment.payment.domain.payment.model.Payment;
 import com.payment.payment.domain.payment.model.PaymentMethod;
 
@@ -17,12 +18,12 @@ public record PaymentResponse(
         LocalDateTime paidAt
 ) {
 
-    public static PaymentResponse from(Payment payment) {
+    public static PaymentResponse from(Payment payment, Order order) {
         return new PaymentResponse(
                 payment.getId(),
-                payment.getOrder().getId(),
-                payment.getOrder().getProductName(),
-                payment.getOrder().getOriginalPrice(),
+                order.getId(),
+                order.getProductName(),
+                order.getOriginalPrice(),
                 payment.getFinalAmount(),
                 payment.getPaymentMethod(),
                 payment.getPaidAt()

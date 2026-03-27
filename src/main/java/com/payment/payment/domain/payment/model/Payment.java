@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -44,12 +45,12 @@ public class Payment extends BaseEntity {
         this.paidAt = paidAt;
     }
 
-    public static Payment create(Order order, int finalAmount, PaymentMethod paymentMethod) {
+    public static Payment create(Order order, int finalAmount, PaymentMethod paymentMethod, Clock clock) {
         return Payment.builder()
                 .order(order)
                 .finalAmount(finalAmount)
                 .paymentMethod(paymentMethod)
-                .paidAt(LocalDateTime.now())
+                .paidAt(LocalDateTime.now(clock))
                 .build();
     }
 }
