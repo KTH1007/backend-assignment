@@ -17,8 +17,15 @@ public class DiscountPolicyResolver {
 
     // 등급에 맞는 할인 정책 선택
     public DiscountPolicy resolve(MemberGrade grade) {
-        return discountPolicies.stream()
+        List<DiscountPolicy> matched = discountPolicies.stream()
                 .filter(policy -> policy.supports(grade))
+                .toList();
+
+        if (matched.size() > 1) {
+            throw new BusinessException(ErrorCode.DUPLICATE_DISCOUNT_POLICY);
+        }
+
+        return matched.stream()
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.DISCOUNT_POLICY_NOT_FOUND));
     }

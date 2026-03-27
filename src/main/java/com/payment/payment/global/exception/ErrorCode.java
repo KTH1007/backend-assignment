@@ -20,7 +20,8 @@ public enum ErrorCode {
 
     // Payment
     ALREADY_PAID(HttpStatus.CONFLICT, "이미 결제된 주문입니다."),
-    DISCOUNT_POLICY_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "적용 가능한 할인 정책을 찾을 수 없습니다.");
+    DISCOUNT_POLICY_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "적용 가능한 할인 정책을 찾을 수 없습니다."),
+    DUPLICATE_DISCOUNT_POLICY(HttpStatus.INTERNAL_SERVER_ERROR, "중복된 할인 정책이 존재합니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
