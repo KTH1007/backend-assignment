@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class VvipDiscountPolicy implements DiscountPolicy {
 
-    private static final double DISCOUNT_RATE = 0.10;
+    private static final int DISCOUNT_RATE = 10;
 
     @Override
     public boolean supports(MemberGrade grade) {
@@ -16,11 +16,11 @@ public class VvipDiscountPolicy implements DiscountPolicy {
 
     @Override
     public int calculate(int originalPrice) {
-        return (int) (originalPrice * (1 - DISCOUNT_RATE));
+        return originalPrice * (100 - DISCOUNT_RATE) / 100;
     }
 
     @Override
     public String getPolicyName() {
-        return "VVIP_RATE_10";
+        return "VVIP_RATE_" + DISCOUNT_RATE;
     }
 }
