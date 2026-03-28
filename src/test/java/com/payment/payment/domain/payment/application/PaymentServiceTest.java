@@ -1,5 +1,6 @@
 package com.payment.payment.domain.payment.application;
 
+import com.payment.payment.domain.discount.history.application.DiscountHistoryService;
 import com.payment.payment.domain.discount.policy.NormalDiscountPolicy;
 import com.payment.payment.domain.discount.policy.VipDiscountPolicy;
 import com.payment.payment.domain.discount.policy.VvipDiscountPolicy;
@@ -31,13 +32,16 @@ import java.util.UUID;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
     @Mock private OrderRepository orderRepository;
     @Mock private PaymentRepository paymentRepository;
+    @Mock private DiscountHistoryService discountHistoryService;
     @InjectMocks private PaymentService paymentService;
 
     private final Clock fixedClock = Clock.fixed(
@@ -53,7 +57,7 @@ class PaymentServiceTest {
                 new VipDiscountPolicy(),
                 new VvipDiscountPolicy()
         ));
-        paymentService = new PaymentService(orderRepository, paymentRepository, resolver, fixedClock);
+        paymentService = new PaymentService(orderRepository, paymentRepository, resolver, discountHistoryService, fixedClock);
     }
 
     @Test
@@ -113,5 +117,21 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.pay(new PaymentRequest(orderId, PaymentMethod.CREDIT_CARD)))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("결제 완료 시 할인 이력이 저장된다")
+    void pay_savesDiscountHistory() {
+        Member member = Member.create("VIP회원", MemberGrade.VIP);
+        Order order = Order.create("상품A", 10000, member);
+
+        given(orderRepository.findByIdWithLock(any())).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(false);
+
+        paymentService.pay(new PaymentRequest(UUID.randomUUID(), PaymentMethod.CREDIT_CARD));
+
+        verify(discountHistoryService).saveGradeDiscountHistory(
+                any(), eq(MemberGrade.VIP), any(), eq(10000)
+        );
     }
 }

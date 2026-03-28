@@ -23,4 +23,9 @@ public class VipDiscountPolicy implements DiscountPolicy {
     public String getPolicyName() {
         return "VIP_FIXED_" + DISCOUNT_AMOUNT;
     }
+
+    @Override
+    public int getDiscountRate(int originalPrice) {
+        return originalPrice > 0 ? DISCOUNT_AMOUNT * 100 / originalPrice : 0;
+    }
 }
