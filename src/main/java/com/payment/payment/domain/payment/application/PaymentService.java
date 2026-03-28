@@ -9,6 +9,8 @@ import com.payment.payment.domain.order.repository.OrderRepository;
 import com.payment.payment.domain.payment.dto.request.PaymentRequest;
 import com.payment.payment.domain.payment.dto.response.PaymentResponse;
 import com.payment.payment.domain.payment.model.Payment;
+import com.payment.payment.domain.payment.model.PaymentMethod;
+import com.payment.payment.domain.discount.policy.PointDiscountPolicy;
 import com.payment.payment.domain.payment.repository.PaymentRepository;
 import com.payment.payment.global.exception.BusinessException;
 import com.payment.payment.global.exception.ErrorCode;
@@ -27,6 +29,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final DiscountPolicyResolver discountPolicyResolver;
     private final DiscountHistoryService discountHistoryService;
+    private final PointDiscountPolicy pointDiscountPolicy;
     private final Clock clock;
 
     @Transactional
@@ -40,13 +43,21 @@ public class PaymentService {
 
         MemberGrade grade = order.getMember().getGrade();
         DiscountPolicy policy = discountPolicyResolver.resolve(grade);
-        int finalAmount = policy.calculate(order.getOriginalPrice());
+        int gradeDiscountedAmount = policy.calculate(order.getOriginalPrice());
+        int finalAmount = gradeDiscountedAmount;
+
+        if (request.paymentMethod() == PaymentMethod.POINT) {
+            finalAmount = pointDiscountPolicy.calculate(gradeDiscountedAmount);
+        }
 
         Payment payment = Payment.create(order, finalAmount, request.paymentMethod(), clock);
         paymentRepository.save(payment);
 
         discountHistoryService.saveGradeDiscountHistory(payment, grade, policy, order.getOriginalPrice());
 
+        if (request.paymentMethod() == PaymentMethod.POINT) {
+            discountHistoryService.savePaymentMethodDiscountHistory(payment ,grade, gradeDiscountedAmount);
+        }
         return PaymentResponse.from(payment, order);
     }
 }

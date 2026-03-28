@@ -5,6 +5,7 @@ import com.payment.payment.domain.discount.history.repository.DiscountHistoryRep
 import com.payment.payment.domain.discount.model.DiscountPolicy;
 import com.payment.payment.domain.member.model.MemberGrade;
 import com.payment.payment.domain.payment.model.Payment;
+import com.payment.payment.domain.discount.policy.PointDiscountPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiscountHistoryService {
 
     private final DiscountHistoryRepository discountHistoryRepository;
+    private final PointDiscountPolicy pointDiscountPolicy;
 
     public void saveGradeDiscountHistory(Payment payment, MemberGrade memberGrade, DiscountPolicy policy, int originalPrice) {
         int discountAmount = originalPrice - policy.calculate(originalPrice);
@@ -26,6 +28,19 @@ public class DiscountHistoryService {
                 policy.getPolicyName(),
                 discountAmount,
                 discountRate
+        ));
+    }
+
+    public void savePaymentMethodDiscountHistory(Payment payment, MemberGrade memberGrade,
+                                                 int gradeDiscountedAmount) {
+        int discountAmount = gradeDiscountedAmount - pointDiscountPolicy.calculate(gradeDiscountedAmount);
+
+        discountHistoryRepository.save(DiscountHistory.create(
+                payment,
+                memberGrade.name(),
+                pointDiscountPolicy.getPolicyName(),
+                discountAmount,
+                pointDiscountPolicy.getDiscountRate()
         ));
     }
 }
