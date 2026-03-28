@@ -3,9 +3,9 @@ package com.payment.payment.domain.discount.history.application;
 import com.payment.payment.domain.discount.history.model.DiscountHistory;
 import com.payment.payment.domain.discount.history.repository.DiscountHistoryRepository;
 import com.payment.payment.domain.discount.model.DiscountPolicy;
+import com.payment.payment.domain.discount.model.PaymentMethodDiscountPolicy;
 import com.payment.payment.domain.member.model.MemberGrade;
 import com.payment.payment.domain.payment.model.Payment;
-import com.payment.payment.domain.discount.policy.PointDiscountPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiscountHistoryService {
 
     private final DiscountHistoryRepository discountHistoryRepository;
-    private final PointDiscountPolicy pointDiscountPolicy;
 
     public void saveGradeDiscountHistory(Payment payment, MemberGrade memberGrade, DiscountPolicy policy, int originalPrice) {
         int discountAmount = originalPrice - policy.calculate(originalPrice);
@@ -32,15 +31,15 @@ public class DiscountHistoryService {
     }
 
     public void savePaymentMethodDiscountHistory(Payment payment, MemberGrade memberGrade,
-                                                 int gradeDiscountedAmount) {
-        int discountAmount = gradeDiscountedAmount - pointDiscountPolicy.calculate(gradeDiscountedAmount);
+                                                 PaymentMethodDiscountPolicy policy, int gradeDiscountedAmount) {
+        int discountAmount = gradeDiscountedAmount - policy.calculate(gradeDiscountedAmount);
 
         discountHistoryRepository.save(DiscountHistory.create(
                 payment,
                 memberGrade.name(),
-                pointDiscountPolicy.getPolicyName(),
+                policy.getPolicyName(),
                 discountAmount,
-                pointDiscountPolicy.getDiscountRate()
+                policy.getDiscountRate()
         ));
     }
 }

@@ -5,6 +5,7 @@ import com.payment.payment.domain.discount.policy.NormalDiscountPolicy;
 import com.payment.payment.domain.discount.policy.VipDiscountPolicy;
 import com.payment.payment.domain.discount.policy.VvipDiscountPolicy;
 import com.payment.payment.domain.discount.resolver.DiscountPolicyResolver;
+import com.payment.payment.domain.discount.resolver.PaymentMethodDiscountPolicyResolver;
 import com.payment.payment.domain.member.model.Member;
 import com.payment.payment.domain.member.model.MemberGrade;
 import com.payment.payment.domain.order.model.Order;
@@ -50,6 +51,7 @@ class PaymentServiceTest {
     );
 
     private DiscountPolicyResolver resolver;
+    private PaymentMethodDiscountPolicyResolver paymentMethodResolver;
 
     @BeforeEach
     void setUp() {
@@ -58,8 +60,13 @@ class PaymentServiceTest {
                 new VipDiscountPolicy(),
                 new VvipDiscountPolicy()
         ));
-        paymentService = new PaymentService(orderRepository, paymentRepository, resolver, discountHistoryService,
-                new PointDiscountPolicy(), fixedClock);
+        paymentMethodResolver = new PaymentMethodDiscountPolicyResolver(
+                List.of(new PointDiscountPolicy())
+        );
+        paymentService = new PaymentService(
+                orderRepository, paymentRepository, resolver,
+                discountHistoryService, fixedClock, paymentMethodResolver
+        );
     }
 
     @Test
