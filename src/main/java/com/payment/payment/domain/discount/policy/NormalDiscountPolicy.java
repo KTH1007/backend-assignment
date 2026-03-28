@@ -21,4 +21,9 @@ public class NormalDiscountPolicy implements DiscountPolicy {
     public String getPolicyName() {
         return "NORMAL";
     }
+
+    @Override
+    public int getDiscountRate(int originalPrice) {
+        return 0;
+    }
 }

@@ -9,4 +9,6 @@ public interface DiscountPolicy {
     int calculate(int originalPrice);
 
     String getPolicyName();
+
+    int getDiscountRate(int originalPrice);
 }

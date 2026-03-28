@@ -23,4 +23,9 @@ public class VvipDiscountPolicy implements DiscountPolicy {
     public String getPolicyName() {
         return "VVIP_RATE_" + DISCOUNT_RATE;
     }
+
+    @Override
+    public int getDiscountRate(int originalPrice) {
+        return DISCOUNT_RATE;
+    }
 }
