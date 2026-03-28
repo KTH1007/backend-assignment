@@ -3,6 +3,7 @@ package com.payment.payment.domain.discount.history.application;
 import com.payment.payment.domain.discount.history.model.DiscountHistory;
 import com.payment.payment.domain.discount.history.repository.DiscountHistoryRepository;
 import com.payment.payment.domain.discount.model.DiscountPolicy;
+import com.payment.payment.domain.discount.model.PaymentMethodDiscountPolicy;
 import com.payment.payment.domain.member.model.MemberGrade;
 import com.payment.payment.domain.payment.model.Payment;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,19 @@ public class DiscountHistoryService {
                 policy.getPolicyName(),
                 discountAmount,
                 discountRate
+        ));
+    }
+
+    public void savePaymentMethodDiscountHistory(Payment payment, MemberGrade memberGrade,
+                                                 PaymentMethodDiscountPolicy policy, int gradeDiscountedAmount) {
+        int discountAmount = gradeDiscountedAmount - policy.calculate(gradeDiscountedAmount);
+
+        discountHistoryRepository.save(DiscountHistory.create(
+                payment,
+                memberGrade.name(),
+                policy.getPolicyName(),
+                discountAmount,
+                policy.getDiscountRate()
         ));
     }
 }

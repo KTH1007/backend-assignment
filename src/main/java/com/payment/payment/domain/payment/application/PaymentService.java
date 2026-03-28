@@ -2,7 +2,9 @@ package com.payment.payment.domain.payment.application;
 
 import com.payment.payment.domain.discount.history.application.DiscountHistoryService;
 import com.payment.payment.domain.discount.model.DiscountPolicy;
+import com.payment.payment.domain.discount.model.PaymentMethodDiscountPolicy;
 import com.payment.payment.domain.discount.resolver.DiscountPolicyResolver;
+import com.payment.payment.domain.discount.resolver.PaymentMethodDiscountPolicyResolver;
 import com.payment.payment.domain.member.model.MemberGrade;
 import com.payment.payment.domain.order.model.Order;
 import com.payment.payment.domain.order.repository.OrderRepository;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class PaymentService {
     private final DiscountPolicyResolver discountPolicyResolver;
     private final DiscountHistoryService discountHistoryService;
     private final Clock clock;
+    private final PaymentMethodDiscountPolicyResolver paymentMethodDiscountPolicyResolver;
 
     @Transactional
     public PaymentResponse pay(PaymentRequest request) {
@@ -39,13 +43,22 @@ public class PaymentService {
         }
 
         MemberGrade grade = order.getMember().getGrade();
-        DiscountPolicy policy = discountPolicyResolver.resolve(grade);
-        int finalAmount = policy.calculate(order.getOriginalPrice());
+        DiscountPolicy gradePolicy = discountPolicyResolver.resolve(grade);
+        int gradeDiscountedAmount = gradePolicy.calculate(order.getOriginalPrice());
+
+        Optional<PaymentMethodDiscountPolicy> paymentMethodPolicy =
+                paymentMethodDiscountPolicyResolver.resolve(request.paymentMethod());
+        int finalAmount = paymentMethodPolicy
+                .map(policy -> policy.calculate(gradeDiscountedAmount))
+                .orElse(gradeDiscountedAmount);
 
         Payment payment = Payment.create(order, finalAmount, request.paymentMethod(), clock);
         paymentRepository.save(payment);
 
-        discountHistoryService.saveGradeDiscountHistory(payment, grade, policy, order.getOriginalPrice());
+        discountHistoryService.saveGradeDiscountHistory(payment, grade, gradePolicy, order.getOriginalPrice());
+        paymentMethodPolicy.ifPresent(policy ->
+                discountHistoryService.savePaymentMethodDiscountHistory(payment, grade, policy, gradeDiscountedAmount)
+        );
 
         return PaymentResponse.from(payment, order);
     }

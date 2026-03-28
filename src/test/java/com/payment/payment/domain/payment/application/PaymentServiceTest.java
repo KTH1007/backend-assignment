@@ -5,6 +5,7 @@ import com.payment.payment.domain.discount.policy.NormalDiscountPolicy;
 import com.payment.payment.domain.discount.policy.VipDiscountPolicy;
 import com.payment.payment.domain.discount.policy.VvipDiscountPolicy;
 import com.payment.payment.domain.discount.resolver.DiscountPolicyResolver;
+import com.payment.payment.domain.discount.resolver.PaymentMethodDiscountPolicyResolver;
 import com.payment.payment.domain.member.model.Member;
 import com.payment.payment.domain.member.model.MemberGrade;
 import com.payment.payment.domain.order.model.Order;
@@ -12,6 +13,7 @@ import com.payment.payment.domain.order.repository.OrderRepository;
 import com.payment.payment.domain.payment.dto.request.PaymentRequest;
 import com.payment.payment.domain.payment.dto.response.PaymentResponse;
 import com.payment.payment.domain.payment.model.PaymentMethod;
+import com.payment.payment.domain.discount.policy.PointDiscountPolicy;
 import com.payment.payment.domain.payment.repository.PaymentRepository;
 import com.payment.payment.global.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,7 @@ class PaymentServiceTest {
     );
 
     private DiscountPolicyResolver resolver;
+    private PaymentMethodDiscountPolicyResolver paymentMethodResolver;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +60,13 @@ class PaymentServiceTest {
                 new VipDiscountPolicy(),
                 new VvipDiscountPolicy()
         ));
-        paymentService = new PaymentService(orderRepository, paymentRepository, resolver, discountHistoryService, fixedClock);
+        paymentMethodResolver = new PaymentMethodDiscountPolicyResolver(
+                List.of(new PointDiscountPolicy())
+        );
+        paymentService = new PaymentService(
+                orderRepository, paymentRepository, resolver,
+                discountHistoryService, fixedClock, paymentMethodResolver
+        );
     }
 
     @Test
@@ -133,5 +142,34 @@ class PaymentServiceTest {
         verify(discountHistoryService).saveGradeDiscountHistory(
                 any(), eq(MemberGrade.VIP), any(), eq(10000)
         );
+    }
+
+    @Test
+    @DisplayName("포인트 결제 시 등급 할인 후 추가 5% 할인이 적용된다")
+    void pay_pointPayment_additionalDiscount() {
+        Member member = Member.create("VIP회원", MemberGrade.VIP);
+        Order order = Order.create("상품A", 10000, member);
+
+        given(orderRepository.findByIdWithLock(any())).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(false);
+
+        PaymentResponse response = paymentService.pay(new PaymentRequest(UUID.randomUUID(), PaymentMethod.POINT));
+
+        // VIP 1000원 할인 → 9000원, 포인트 5% 추가 할인 → 8550원
+        assertThat(response.finalAmount()).isEqualTo(8550);
+    }
+
+    @Test
+    @DisplayName("신용카드 결제 시 포인트 추가 할인이 적용되지 않는다")
+    void pay_creditCardPayment_noAdditionalDiscount() {
+        Member member = Member.create("VIP회원", MemberGrade.VIP);
+        Order order = Order.create("상품A", 10000, member);
+
+        given(orderRepository.findByIdWithLock(any())).willReturn(Optional.of(order));
+        given(paymentRepository.existsByOrder(order)).willReturn(false);
+
+        PaymentResponse response = paymentService.pay(new PaymentRequest(UUID.randomUUID(), PaymentMethod.CREDIT_CARD));
+
+        assertThat(response.finalAmount()).isEqualTo(9000);
     }
 }
